@@ -1,8 +1,8 @@
-import { SVG } from "@svgdotjs/svg.js";
+import { SVG } from '@svgdotjs/svg.js';
 
 const getAttr = (node, attrName) => {
     return node.getAttribute(attrName);
-}
+};
 
 const getSVGObject = (node, parent) => {
     const tagName = node.tagName?.toLowerCase();
@@ -30,57 +30,66 @@ const getSVGObject = (node, parent) => {
     if (tagName === 'mask') return SVG().mask();
     if (tagName === 'clippath') return SVG().clip();
     if (tagName === 'use') return SVG().use(getAttr(node, 'href'));
-    if (tagName === 'marker') return SVG().marker(getAttr(node, 'refX'), getAttr(node, 'refY'), getAttr(node, 'markerUnits'), getAttr(node, 'markerWidth'), getAttr(node, 'markerHeight'));
+    if (tagName === 'marker')
+        return SVG().marker(
+            getAttr(node, 'refX'),
+            getAttr(node, 'refY'),
+            getAttr(node, 'markerUnits'),
+            getAttr(node, 'markerWidth'),
+            getAttr(node, 'markerHeight')
+        );
     if (tagName === 'style') return SVG().style(getAttr(node, 'type'), getAttr(node, 'media'), getAttr(node, 'title'), getAttr(node, 'id'));
     if (tagName === 'foreignobject') return SVG().foreignObject(getAttr(node, 'width'), getAttr(node, 'height'));
     console.log('unknown tag', tagName);
     return null;
-}
+};
 
 export const addSVGObjectToParent = (node, parent) => {
     let tagName = node.tagName?.toLowerCase();
     if (!tagName) {
-      // check if node is string
-      try {
-        const textContent = node.textContent;
-        if (textContent) {
-          parent.text(textContent);
+        // check if node is string
+        try {
+            const textContent = node.textContent;
+            if (textContent) {
+                parent.text(textContent);
+            }
+        } catch (e) {
+            console.log('Error getting text content', e);
         }
-      } catch (e) {
-        console.log('Error getting text content', e);
-      }
-      return;
+        return;
     }
     const svgObject = getSVGObject(node, parent);
     if (!svgObject) return;
     svgObject.addTo(parent);
     for (const attr of node.attributes) {
-      svgObject.attr(attr.name, attr.value);
+        svgObject.attr(attr.name, attr.value);
     }
     for (const child of node.childNodes) {
-      addSVGObjectToParent(child, svgObject);
+        addSVGObjectToParent(child, svgObject);
     }
-  }
-
+};
 
 export const calculateViewBox = (svgElement) => {
-    const allElements = svgElement.querySelectorAll("*");
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const allElements = svgElement.querySelectorAll('*');
+    let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
 
-    allElements.forEach(element => {
-      if (typeof element.getBBox === "function") {
-        const bbox = element.getBBox();
-        minX = Math.min(minX, bbox.x);
-        minY = Math.min(minY, bbox.y);
-        maxX = Math.max(maxX, bbox.x + bbox.width);
-        maxY = Math.max(maxY, bbox.y + bbox.height);
-      }
+    allElements.forEach((element) => {
+        if (typeof element.getBBox === 'function') {
+            const bbox = element.getBBox();
+            minX = Math.min(minX, bbox.x);
+            minY = Math.min(minY, bbox.y);
+            maxX = Math.max(maxX, bbox.x + bbox.width);
+            maxY = Math.max(maxY, bbox.y + bbox.height);
+        }
     });
 
     // Handle edge case where there are no elements
     if (minX === Infinity || minY === Infinity) {
-      return "0 0 100 100"; // Default viewBox
+        return '0 0 100 100'; // Default viewBox
     }
 
     return [minX, minY, maxX - minX, maxY - minY];
-}
+};
