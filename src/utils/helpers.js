@@ -4,7 +4,7 @@ const getAttr = (node, attrName) => {
     return node.getAttribute(attrName);
 }
 
-export const getSVGObject = (node, parent) => {
+const getSVGObject = (node, parent) => {
     const tagName = node.tagName?.toLowerCase();
     if (!tagName) return;
     if (tagName === 'svg') return SVG();
@@ -36,6 +36,31 @@ export const getSVGObject = (node, parent) => {
     console.log('unknown tag', tagName);
     return null;
 }
+
+export const addSVGObjectToParent = (node, parent) => {
+    let tagName = node.tagName?.toLowerCase();
+    if (!tagName) {
+      // check if node is string
+      try {
+        const textContent = node.textContent;
+        if (textContent) {
+          parent.text(textContent);
+        }
+      } catch (e) {
+        console.log('Error getting text content', e);
+      }
+      return;
+    }
+    const svgObject = getSVGObject(node, parent);
+    if (!svgObject) return;
+    svgObject.addTo(parent);
+    for (const attr of node.attributes) {
+      svgObject.attr(attr.name, attr.value);
+    }
+    for (const child of node.childNodes) {
+      addSVGObjectToParent(child, svgObject);
+    }
+  }
 
 
 export const calculateViewBox = (svgElement) => {

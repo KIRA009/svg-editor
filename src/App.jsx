@@ -3,38 +3,16 @@ import './App.css'
 import { svgString } from './svgString';
 import { SVG } from '@svgdotjs/svg.js';
 import { useEffect } from 'react';
-import { calculateViewBox, getSVGObject } from './utils/helpers';
-
-const addSVGObjectToParent = (node, parent) => {
-  let tagName = node.tagName?.toLowerCase();
-  if (!tagName) {
-    // check if node is string
-    try {
-      const textContent = node.textContent;
-      if (textContent) {
-        parent.text(textContent);
-      }
-    } catch (e) {
-      console.log('Error getting text content', e);
-    }
-    return;
-  }
-  const svgObject = getSVGObject(node, parent);
-  if (!svgObject) return;
-  svgObject.addTo(parent);
-  for (const attr of node.attributes) {
-    svgObject.attr(attr.name, attr.value);
-  }
-  for (const child of node.childNodes) {
-    addSVGObjectToParent(child, svgObject);
-  }
-}
+import { addSVGObjectToParent, calculateViewBox } from './utils/helpers';
 
 function App() {
   const ref = useRef(null);
   const svg = useRef(null);
+  const [svgDimensions, setSVGDimensions] = useState({ width: 0, height: 0 });
+  const [zoom, setZoom] = useState(1);
   const [selectedObject, setSelectedObject] = useState(null);
   const lastMousePosition = useRef({ x: 0, y: 0 });
+  const [mode, setMode] = useState('select');
   useEffect(() => {
     const currentRef = ref.current;
     if (currentRef) {
@@ -45,8 +23,7 @@ function App() {
         addSVGObjectToParent(child, svg.current);
       }
       const viewBox = calculateViewBox(svg.current.node);
-      svg.current.viewbox(viewBox[0] - 10, viewBox[1] - 10, viewBox[2] + 10, viewBox[3] + 10);
-      svg.current.size(viewBox[2], viewBox[3]);
+      setSVGDimensions({ width: viewBox[2], height: viewBox[3] });
       
       const addHandlers = (obj) => {
         obj.on('click', (e) => {
@@ -84,7 +61,16 @@ function App() {
       }
     }
   }
-  return <div style={{ width: 500, height: 500 }} ref={ref} onClick={handleClick} ></div>;
+  return (
+    <>
+    <div style={{ width: 800, height: 500 }} ref={ref} onClick={handleClick} ></div>
+    <select value={mode} onChange={(e) => setMode(e.target.value)}>
+      {['select', 'move'].map((mode) => (
+        <option key={mode} value={mode}>{mode}</option>
+      ))}
+    </select>
+    </>
+  );
 }
 
 export default App
