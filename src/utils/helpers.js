@@ -1,95 +1,158 @@
-import { SVG } from '@svgdotjs/svg.js';
+import { Path } from '@svgdotjs/svg.js';
+import SVGPathCommander_2 from 'svg-path-commander';
 
-const getAttr = (node, attrName) => {
-    return node.getAttribute(attrName);
+export const transformPoint = ([x, y], { a, b, c, d, e, f }) => {
+    const [x1, y1] = [a * x + c * y + e, b * x + d * y + f];
+    return [x1, y1];
 };
 
-const getSVGObject = (node, parent) => {
-    const tagName = node.tagName?.toLowerCase();
-    if (!tagName) return;
-    if (tagName === 'svg') return SVG();
-    if (tagName === 'g') return SVG().group();
-    if (tagName === 'symbol') return SVG().symbol();
-    if (tagName === 'defs') return SVG().defs();
-    if (tagName === 'a') return SVG().link(getAttr(node, 'href'));
-    if (tagName === 'rect') return SVG().rect(getAttr(node, 'width'), getAttr(node, 'height'));
-    if (tagName === 'circle') return SVG().circle(getAttr(node, 'r'));
-    if (tagName === 'ellipse') return SVG().ellipse(getAttr(node, 'width'), getAttr(node, 'height'));
-    if (tagName === 'line') return SVG().line(getAttr(node, 'x1'), getAttr(node, 'y1'), getAttr(node, 'x2'), getAttr(node, 'y2'));
-    if (tagName === 'polyline') return SVG().line(getAttr(node, 'points'));
-    if (tagName === 'polygon') return SVG().polygon(getAttr(node, 'points'));
-    if (tagName === 'path') return SVG().path(getAttr(node, 'd'));
-    if (tagName === 'text') return SVG().text(getAttr(node, 'x'), getAttr(node, 'y'), getAttr(node, 'text'));
-    if (tagName === 'textpath') return parent.textpath(getAttr(node, 'path'));
-    if (tagName === 'tspan') return parent.tspan(getAttr(node, 'text'));
-    if (tagName === 'image') return SVG().image(getAttr(node, 'href'));
-    if (tagName === 'lineargradient') return SVG().gradient('linear');
-    if (tagName === 'radialgradient') return SVG().gradient('radial');
-    if (tagName === 'stop') return parent.stop(getAttr(node, 'offset'), getAttr(node, 'style'));
-    if (tagName === 'pattern') return SVG().pattern(getAttr(node, 'width'), getAttr(node, 'height'));
-    if (tagName === 'mask') return SVG().mask();
-    if (tagName === 'clippath') return SVG().clip();
-    if (tagName === 'use') return SVG().use(getAttr(node, 'href'));
-    if (tagName === 'marker')
-        return SVG().marker(
-            getAttr(node, 'refX'),
-            getAttr(node, 'refY'),
-            getAttr(node, 'markerUnits'),
-            getAttr(node, 'markerWidth'),
-            getAttr(node, 'markerHeight')
-        );
-    if (tagName === 'style') return SVG().style(getAttr(node, 'type'), getAttr(node, 'media'), getAttr(node, 'title'), getAttr(node, 'id'));
-    if (tagName === 'foreignobject') return SVG().foreignObject(getAttr(node, 'width'), getAttr(node, 'height'));
-    console.log('unknown tag', tagName);
-    return null;
-};
-
-export const addSVGObjectToParent = (node, parent) => {
-    let tagName = node.tagName?.toLowerCase();
-    if (!tagName) {
-        // check if node is string
-        try {
-            const textContent = node.textContent;
-            if (textContent) {
-                parent.text(textContent);
+export const wrapTextNodesInGroup = (svg) => {
+    const wrapper = (node) => {
+        if (node.type === 'text') {
+            const parent = node.parent();
+            const group = parent.group();
+            node.toParent(group);
+        } else {
+            for (const child of node.children()) {
+                wrapper(child);
             }
-        } catch (e) {
-            console.log('Error getting text content', e);
         }
-        return;
-    }
-    const svgObject = getSVGObject(node, parent);
-    if (!svgObject) return;
-    svgObject.addTo(parent);
-    for (const attr of node.attributes) {
-        svgObject.attr(attr.name, attr.value);
-    }
-    for (const child of node.childNodes) {
-        addSVGObjectToParent(child, svgObject);
+        return node;
+    };
+    for (const child of svg.children()) {
+        wrapper(child);
     }
 };
 
-export const calculateViewBox = (svgElement) => {
-    const allElements = svgElement.querySelectorAll('*');
-    let minX = Infinity,
-        minY = Infinity,
-        maxX = -Infinity,
-        maxY = -Infinity;
-
-    allElements.forEach((element) => {
-        if (typeof element.getBBox === 'function') {
-            const bbox = element.getBBox();
-            minX = Math.min(minX, bbox.x);
-            minY = Math.min(minY, bbox.y);
-            maxX = Math.max(maxX, bbox.x + bbox.width);
-            maxY = Math.max(maxY, bbox.y + bbox.height);
+const POSSIBLE_SHAPE_TYPES = ['rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon'];
+export const convertShapesToPaths = (svg) => {
+    const converter = (shape) => {
+        const shapeType = shape.type;
+        if (POSSIBLE_SHAPE_TYPES.includes(shapeType)) {
+            const path = SVGPathCommander_2.shapeToPath(shape.node, false);
+            if (!path) {
+                console.log('no path', shape);
+                return;
+            }
+            const newShape = new Path({ d: path.getAttribute('d') });
+            shape.replace(newShape);
+            const nonCopyableAttributes = ['d', 'x1', 'y1', 'x2', 'y2', 'pathLength', 'points'];
+            for (const attr of shape.node.getAttributeNames()) {
+                if (!nonCopyableAttributes.includes(attr)) {
+                    newShape.attr(attr, shape.attr(attr));
+                }
+            }
         }
-    });
+    };
 
-    // Handle edge case where there are no elements
-    if (minX === Infinity || minY === Infinity) {
-        return '0 0 100 100'; // Default viewBox
+    const wrapper = (node) => {
+        converter(node);
+        for (const child of node.children()) {
+            wrapper(child);
+        }
+    };
+
+    for (const child of svg.children()) {
+        wrapper(child);
     }
+};
 
-    return [minX, minY, maxX - minX, maxY - minY];
+export const getCubicBezierSegments = (el, asPathString = false, transform = true) => {
+    const fromShapeToUiMatrix = transform ? el.root().screenCTM().inverseO().multiplyO(el.screenCTM()) : null;
+    let startPoint = null;
+    let firstPoint = null;
+    const convertLineToCurve = (start, end) => {
+        if (start[0] === end[0] && start[1] === end[1]) {
+            return null;
+        }
+        const x1 = start[0] + (end[0] - start[0]) / 3;
+        const y1 = start[1] + (end[1] - start[1]) / 3;
+        const x2 = start[0] + (2 * (end[0] - start[0])) / 3;
+        const y2 = start[1] + (2 * (end[1] - start[1])) / 3;
+        return {
+            startPoint: start,
+            controlPoints: [
+                [x1, y1],
+                [x2, y2],
+            ],
+            endPoint: end,
+        };
+    };
+    const segments = el.node
+        .getPathData({ normalize: true })
+        .map((command) => {
+            if (transform) {
+                for (let i = 0; i < command.values.length; i += 2) {
+                    const [x, y] = transformPoint([command.values[i], command.values[i + 1]], fromShapeToUiMatrix);
+                    command.values[i] = x;
+                    command.values[i + 1] = y;
+                }
+            }
+            if (command.type === 'M') {
+                if (firstPoint === null) {
+                    firstPoint = command.values;
+                }
+                startPoint = command.values;
+                return null;
+            }
+            if (command.type === 'L') {
+                const curve = convertLineToCurve(startPoint, command.values);
+                if (!curve) {
+                    return null;
+                }
+                startPoint = curve.endPoint;
+                return curve;
+            } else if (command.type === 'C') {
+                const curve = {
+                    startPoint: startPoint,
+                    controlPoints: [
+                        [command.values[0], command.values[1]],
+                        [command.values[2], command.values[3]],
+                    ],
+                    endPoint: [command.values[4], command.values[5]],
+                };
+                startPoint = curve.endPoint;
+                return curve;
+            } else if (command.type === 'Z') {
+                const curve = convertLineToCurve(startPoint, firstPoint);
+                if (!curve) {
+                    return null;
+                }
+                startPoint = curve.endPoint;
+                return curve;
+            } else {
+                throw new Error(`Unknown command: ${command.type}`);
+            }
+        })
+        .filter(Boolean);
+    if (asPathString) {
+        return segments.map(getCubicBezierPathString).join(' ');
+    }
+    return segments;
+};
+
+export const getCubicBezierPathString = (segment) => {
+    return `M${segment.startPoint[0]},${segment.startPoint[1]} C${segment.controlPoints[0][0]},${segment.controlPoints[0][1]},${segment.controlPoints[1][0]},${segment.controlPoints[1][1]},${segment.endPoint[0]},${segment.endPoint[1]}`;
+};
+
+export const updatePathFromSegments = (el, _segments) => {
+    const fromShapeToUiMatrix = el.root().screenCTM().inverseO().multiplyO(el.screenCTM()).inverseO();
+    let pathString = ``;
+    const segments = _segments.map((segment) => {
+        const { startPoint, controlPoints, endPoint } = segment;
+        return {
+            startPoint: transformPoint(startPoint, fromShapeToUiMatrix),
+            controlPoints: controlPoints.map((point) => transformPoint(point, fromShapeToUiMatrix)),
+            endPoint: transformPoint(endPoint, fromShapeToUiMatrix),
+        };
+    });
+    for (let i = 0; i < segments.length; i++) {
+        if (i === 0) {
+            pathString += getCubicBezierPathString(segments[i]);
+        } else {
+            pathString += ` C ${segments[i].controlPoints[0][0]} ${segments[i].controlPoints[0][1]} ${segments[i].controlPoints[1][0]} ${segments[i].controlPoints[1][1]} ${segments[i].endPoint[0]} ${segments[i].endPoint[1]}`;
+        }
+    }
+    el.attr('d', pathString);
+    el.clear();
 };

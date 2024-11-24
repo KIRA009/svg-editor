@@ -1,0 +1,21 @@
+.selectedObject__name {
+    background-color: var(--mantine-color-gray-7);
+    color: var(--mantine-color-white);
+    padding: 0.125rem 1rem;
+    cursor: pointer;
+}
+
+.selectedObject__name_selected {
+    background-color: var(--mantine-color-blue-5);
+    cursor: default;
+}
+
+.editor {
+    border: 5px solid var(--mantine-color-gray-4);
+}
+
+.selectedObject__panel {
+    position: absolute;
+    right: 10px;
+    top: 0;
+}
