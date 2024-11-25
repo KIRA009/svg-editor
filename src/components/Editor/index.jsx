@@ -21,20 +21,24 @@ export const Editor = ({ svgString, mode, refresh, actionStack }) => {
     const selectedObjectForEditPanel = useRef(null);
     const copiedObject = useRef(null);
     const addToActionStack = (action) => {
-        console.log('addToActionStack', action.type, action.details);
+        console.log('addToActionStack', action.type);
         actionStack.current.push(action);
         refresh();
     };
     const addListeners = (obj) => {
-        const classes = obj.classes();
-        for (const className of classes) {
-            if (className.includes('svg_select')) {
-                return;
-            }
+        if (!obj) {
+            return;
+        }
+        for (const child of obj.children()) {
+            addListeners(child);
+        }
+        if (obj.type === 'svg') {
+            return;
         }
         obj.on('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
+            console.log('clicked on', obj.id());
             selectObject(obj);
         });
         obj.on('beforeresize', (e) => {
@@ -62,50 +66,52 @@ export const Editor = ({ svgString, mode, refresh, actionStack }) => {
                 details: { obj, segments },
             });
         });
-        for (const child of obj.children()) {
-            addListeners(child);
-        }
     };
     const removeListeners = (obj) => {
+        if (!obj) {
+            return;
+        }
+        for (const child of obj.children()) {
+            removeListeners(child);
+        }
+        if (obj.type === 'svg') {
+            return;
+        }
         obj.off('click');
         obj.off('beforeresize');
         obj.off('beforedrag');
         obj.off('beforereimagine');
-        for (const child of obj.children()) {
-            removeListeners(child);
-        }
     };
 
     // initialize the svg
     useEffect(() => {
         const currentRef = ref.current;
-        if (currentRef) {
+        if (currentRef && svgString) {
             const svgElement = SVG(svgString).addTo(currentRef);
             convertShapesToPaths(svgElement);
             wrapTextNodesInGroup(svgElement);
             svg.current = svgElement;
+            const viewbox = svg.current.viewbox();
+            if (viewbox.width === 0 || viewbox.height === 0) {
+                svg.current.viewbox(0, 0, svg.current.width(), svg.current.height());
+            }
             svg.current.panZoom({
-                zoomMin: 1,
+                zoomMin: 0.5,
                 zoomMax: 10,
                 zoomFactor: 0.1,
                 panButton: 1,
             });
-            for (const child of svg.current.children()) {
-                addListeners(child);
-            }
             actionStack.current = [];
+            refresh();
         }
         return () => {
             if (currentRef) {
                 currentRef.innerHTML = '';
             }
-            for (const child of svg.current.children()) {
-                removeListeners(child);
-            }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-    const selectObject = (obj, forceUpdate = false) => {
+    }, [svgString]);
+    const selectObject = (obj) => {
         if (obj && obj.type === 'svg') {
             return;
         }
@@ -125,27 +131,10 @@ export const Editor = ({ svgString, mode, refresh, actionStack }) => {
             obj.reimagine(false).draggable(false);
             obj.node.style.cursor = 'default';
         };
-        if (selectedObjectForTransform.current && obj && selectedObjectForTransform.current.id() === obj.id()) {
-            if (forceUpdate) {
-                removeTransformHandlers(selectedObjectForTransform.current);
-                removeReimagineHandlers(selectedObjectForTransform.current);
-                if (mode === 'transform') {
-                    addTransformHandlers(selectedObjectForTransform.current);
-                } else if (mode === 'reimagine') {
-                    addReimagineHandlers(selectedObjectForTransform.current);
-                }
-                return;
-            }
-            // clicked on the same object, do nothing
-            return;
-        }
         if (selectedObjectForTransform.current) {
             // deselect the current object
-            if (mode === 'transform') {
-                removeTransformHandlers(selectedObjectForTransform.current);
-            } else if (mode === 'reimagine') {
-                removeReimagineHandlers(selectedObjectForTransform.current);
-            }
+            removeTransformHandlers(selectedObjectForTransform.current);
+            removeReimagineHandlers(selectedObjectForTransform.current);
             selectedObjectForTransform.current = null;
         }
         selectedObjectForTransform.current = obj && obj.type === 'text' ? obj.parent() : obj;
@@ -160,6 +149,25 @@ export const Editor = ({ svgString, mode, refresh, actionStack }) => {
                 addTransformHandlers(selectedObjectForTransform.current);
             } else if (mode === 'reimagine') {
                 addReimagineHandlers(selectedObjectForTransform.current);
+            } else if (mode === 'split') {
+                const oldObject = selectedObjectForTransform.current.clone();
+                const splitObject = selectedObjectForTransform.current.split();
+                if (splitObject !== oldObject) {
+                    addToActionStack({
+                        type: 'split',
+                        details: { oldObject, newObject: splitObject },
+                        after: () => {
+                            removeListeners(oldObject);
+                            addListeners(oldObject);
+                            selectedObjectForTransform.current = oldObject;
+                            refresh();
+                        },
+                    });
+                    addListeners(splitObject);
+                }
+                selectedObjectForTransform.current = splitObject;
+                selectedObjectForEditPanel.current = null;
+                console.log('selectedObjectForTransform.current', selectedObjectForTransform.current.node);
             }
             selectedObjectForTransform.current.node.style.cursor = 'move';
         }
@@ -167,9 +175,17 @@ export const Editor = ({ svgString, mode, refresh, actionStack }) => {
     };
     useEffect(() => {
         console.log('useEffect', mode);
-        selectObject(selectedObjectForTransform.current, true);
+        addListeners(svg.current);
+        if (mode !== 'split') {
+            selectObject(selectedObjectForTransform.current);
+        } else {
+            selectObject(null);
+        }
+        return () => {
+            removeListeners(svg.current);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [mode]);
+    }, [mode, svg.current]);
     useUndo({
         selectedObject: selectedObjectForTransform,
         actionStack,
@@ -193,40 +209,29 @@ export const Editor = ({ svgString, mode, refresh, actionStack }) => {
         selectObject,
         mode,
     });
-    // create a top down panel of the selected object, its parent, its grandparent, etc.
-    const selectedObjectStack = (() => {
-        const stack = [];
-        let currentObject = selectedObjectForTransform.current;
-        while (currentObject) {
-            // add to the first position of the array
-            stack.unshift(currentObject);
-            if (currentObject.type === 'svg') {
-                break;
-            }
-            currentObject = currentObject.parent();
-        }
-        return stack;
-    })();
     const removeSelectedObjectPanel = () => {
         selectedObjectForEditPanel.current = null;
         refresh();
     };
     return (
-        <Box pos="relative" w="100%">
+        <Box pos="relative" flex="auto">
             <Group pos="absolute" top={0} left={50} gap={0}>
-                {selectedObjectStack.map((obj) => (
-                    <Box
-                        key={obj.id()}
-                        className={cx(classes.selectedObject__name, {
-                            [classes.selectedObject__name_selected]: obj.id() === selectedObjectForTransform.current?.id(),
-                        })}
-                        onClick={() => {
-                            selectObject(obj);
-                        }}
-                    >
-                        <Text>{obj.constructor.name}</Text>
-                    </Box>
-                ))}
+                {selectedObjectForTransform.current
+                    ?.parents()
+                    .concat(selectedObjectForTransform.current)
+                    .map((obj) => (
+                        <Box
+                            key={obj.id()}
+                            className={cx(classes.selectedObject__name, {
+                                [classes.selectedObject__name_selected]: obj.id() === selectedObjectForTransform.current?.id(),
+                            })}
+                            onClick={() => {
+                                selectObject(obj);
+                            }}
+                        >
+                            <Text>{obj.type}</Text>
+                        </Box>
+                    ))}
             </Group>
             <Box className={classes.editor} mx="auto" w="fit-content" mt={200} ref={ref} />
             {selectedObjectForEditPanel.current && (
@@ -247,7 +252,7 @@ export const Editor = ({ svgString, mode, refresh, actionStack }) => {
 };
 
 Editor.propTypes = {
-    svgString: PropTypes.string.isRequired,
+    svgString: PropTypes.string,
     mode: PropTypes.string.isRequired,
     refresh: PropTypes.func.isRequired,
     actionStack: PropTypes.object.isRequired,

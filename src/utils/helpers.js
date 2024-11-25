@@ -25,24 +25,58 @@ export const wrapTextNodesInGroup = (svg) => {
 };
 
 const POSSIBLE_SHAPE_TYPES = ['rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon'];
+export const copyAttrs = (shape, newShape) => {
+    const nonCopyableAttributes = ['d', 'x1', 'y1', 'x2', 'y2', 'pathLength', 'points'];
+    for (const attr of shape.node.getAttributeNames()) {
+        if (!nonCopyableAttributes.includes(attr)) {
+            newShape.attr(attr, shape.attr(attr));
+        }
+    }
+};
 export const convertShapesToPaths = (svg) => {
     const converter = (shape) => {
         const shapeType = shape.type;
+        let newShape = shape.type === 'path' ? shape : null;
         if (POSSIBLE_SHAPE_TYPES.includes(shapeType)) {
             const path = SVGPathCommander_2.shapeToPath(shape.node, false);
             if (!path) {
                 console.log('no path', shape);
                 return;
             }
-            const newShape = new Path({ d: path.getAttribute('d') });
+            newShape = new Path({ d: path.getAttribute('d') });
             shape.replace(newShape);
-            const nonCopyableAttributes = ['d', 'x1', 'y1', 'x2', 'y2', 'pathLength', 'points'];
-            for (const attr of shape.node.getAttributeNames()) {
-                if (!nonCopyableAttributes.includes(attr)) {
-                    newShape.attr(attr, shape.attr(attr));
-                }
-            }
+            copyAttrs(shape, newShape);
         }
+        if (!newShape) {
+            console.log('no new shape', shape);
+            return;
+        }
+        // const pathDataArray = [];
+        // let currentPathData = '';
+        // for (const pathData of newShape.node.getPathData({ normalize: true })) {
+        //     if (pathData.type === 'M') {
+        //         if (currentPathData) {
+        //             pathDataArray.push(currentPathData);
+        //         }
+        //         currentPathData = '';
+        //     }
+        //     currentPathData += `${pathData.type}${pathData.values.join(',')} `;
+        // }
+        // if (currentPathData) {
+        //     pathDataArray.push(currentPathData);
+        //     currentPathData = '';
+        // }
+        // if (pathDataArray.length === 1) {
+        //     return;
+        // }
+        // const g = new G();
+        // for (let i = 0; i < pathDataArray.length; i++) {
+        //     const pathData = pathDataArray[i];
+        //     const path = new Path({ d: pathData });
+        //     copyAttrs(newShape, path);
+        //     g.add(path);
+        // }
+        // newShape.replace(g);
     };
 
     const wrapper = (node) => {
@@ -57,8 +91,8 @@ export const convertShapesToPaths = (svg) => {
     }
 };
 
-export const getCubicBezierSegments = (el, asPathString = false, transform = true) => {
-    const fromShapeToUiMatrix = transform ? el.root().screenCTM().inverseO().multiplyO(el.screenCTM()) : null;
+export const getCubicBezierSegments = (el) => {
+    const fromShapeToUiMatrix = el.root().screenCTM().inverseO().multiplyO(el.screenCTM());
     let startPoint = null;
     let firstPoint = null;
     const convertLineToCurve = (start, end) => {
@@ -78,80 +112,79 @@ export const getCubicBezierSegments = (el, asPathString = false, transform = tru
             endPoint: end,
         };
     };
-    const segments = el.node
-        .getPathData({ normalize: true })
-        .map((command) => {
-            if (transform) {
-                for (let i = 0; i < command.values.length; i += 2) {
-                    const [x, y] = transformPoint([command.values[i], command.values[i + 1]], fromShapeToUiMatrix);
-                    command.values[i] = x;
-                    command.values[i + 1] = y;
-                }
-            }
-            if (command.type === 'M') {
-                if (firstPoint === null) {
-                    firstPoint = command.values;
-                }
-                startPoint = command.values;
+    const segments = [];
+    let currentSegmentIndex = -1;
+    el.node.getPathData({ normalize: true }).forEach((command) => {
+        for (let i = 0; i < command.values.length; i += 2) {
+            const [x, y] = transformPoint([command.values[i], command.values[i + 1]], fromShapeToUiMatrix);
+            command.values[i] = x;
+            command.values[i + 1] = y;
+        }
+        if (command.type === 'M') {
+            firstPoint = command.values;
+            startPoint = command.values;
+            currentSegmentIndex++;
+            segments.push([]);
+        } else if (command.type === 'L') {
+            const curve = convertLineToCurve(startPoint, command.values);
+            if (!curve) {
                 return null;
             }
-            if (command.type === 'L') {
-                const curve = convertLineToCurve(startPoint, command.values);
-                if (!curve) {
-                    return null;
-                }
-                startPoint = curve.endPoint;
-                return curve;
-            } else if (command.type === 'C') {
-                const curve = {
-                    startPoint: startPoint,
-                    controlPoints: [
-                        [command.values[0], command.values[1]],
-                        [command.values[2], command.values[3]],
-                    ],
-                    endPoint: [command.values[4], command.values[5]],
-                };
-                startPoint = curve.endPoint;
-                return curve;
-            } else if (command.type === 'Z') {
-                const curve = convertLineToCurve(startPoint, firstPoint);
-                if (!curve) {
-                    return null;
-                }
-                startPoint = curve.endPoint;
-                return curve;
-            } else {
-                throw new Error(`Unknown command: ${command.type}`);
+            startPoint = curve.endPoint;
+            segments[currentSegmentIndex].push(curve);
+        } else if (command.type === 'C') {
+            const curve = {
+                startPoint: startPoint,
+                controlPoints: [
+                    [command.values[0], command.values[1]],
+                    [command.values[2], command.values[3]],
+                ],
+                endPoint: [command.values[4], command.values[5]],
+            };
+            startPoint = curve.endPoint;
+            segments[currentSegmentIndex].push(curve);
+        } else if (command.type === 'Z') {
+            const curve = convertLineToCurve(startPoint, firstPoint);
+            if (!curve) {
+                return null;
             }
-        })
-        .filter(Boolean);
-    if (asPathString) {
-        return segments.map(getCubicBezierPathString).join(' ');
-    }
+            startPoint = curve.endPoint;
+            segments[currentSegmentIndex].push(curve);
+        } else {
+            throw new Error(`Unknown command: ${command.type}`);
+        }
+    });
     return segments;
 };
 
-export const getCubicBezierPathString = (segment) => {
-    return `M${segment.startPoint[0]},${segment.startPoint[1]} C${segment.controlPoints[0][0]},${segment.controlPoints[0][1]},${segment.controlPoints[1][0]},${segment.controlPoints[1][1]},${segment.endPoint[0]},${segment.endPoint[1]}`;
+export const getPathStringFromSegments = (segments) => {
+    let pathString = ``;
+    for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+        if (i === 0) {
+            pathString += `M${segment.startPoint[0]},${segment.startPoint[1]} C${segment.controlPoints[0][0]},${segment.controlPoints[0][1]},${segment.controlPoints[1][0]},${segment.controlPoints[1][1]},${segment.endPoint[0]},${segment.endPoint[1]} `;
+        } else {
+            pathString += `C${segment.controlPoints[0][0]} ${segment.controlPoints[0][1]} ${segment.controlPoints[1][0]} ${segment.controlPoints[1][1]} ${segment.endPoint[0]} ${segment.endPoint[1]} `;
+        }
+    }
+    return pathString;
 };
 
-export const updatePathFromSegments = (el, _segments) => {
+export const updatePathFromSegments = (el, _segmentsArray) => {
     const fromShapeToUiMatrix = el.root().screenCTM().inverseO().multiplyO(el.screenCTM()).inverseO();
     let pathString = ``;
-    const segments = _segments.map((segment) => {
-        const { startPoint, controlPoints, endPoint } = segment;
-        return {
-            startPoint: transformPoint(startPoint, fromShapeToUiMatrix),
-            controlPoints: controlPoints.map((point) => transformPoint(point, fromShapeToUiMatrix)),
-            endPoint: transformPoint(endPoint, fromShapeToUiMatrix),
-        };
-    });
-    for (let i = 0; i < segments.length; i++) {
-        if (i === 0) {
-            pathString += getCubicBezierPathString(segments[i]);
-        } else {
-            pathString += ` C ${segments[i].controlPoints[0][0]} ${segments[i].controlPoints[0][1]} ${segments[i].controlPoints[1][0]} ${segments[i].controlPoints[1][1]} ${segments[i].endPoint[0]} ${segments[i].endPoint[1]}`;
-        }
+    const segmentsArray = _segmentsArray.map((segments) =>
+        segments.map((segment) => {
+            const { startPoint, controlPoints, endPoint } = segment;
+            return {
+                startPoint: transformPoint(startPoint, fromShapeToUiMatrix),
+                controlPoints: controlPoints.map((point) => transformPoint(point, fromShapeToUiMatrix)),
+                endPoint: transformPoint(endPoint, fromShapeToUiMatrix),
+            };
+        })
+    );
+    for (const segments of segmentsArray) {
+        pathString += getPathStringFromSegments(segments);
     }
     el.attr('d', pathString);
     el.clear();

@@ -1,14 +1,14 @@
 import { Group, Menu, UnstyledButton, Stack } from '@mantine/core';
 import PropTypes from 'prop-types';
+import { FileMenu } from './FileMenu';
 
-export const MenuBar = ({ actionStack }) => {
+export const MenuBar = ({ actionStack, setSvgString }) => {
     return (
-        <Group width={'100%'} bg="gray.1">
+        <Group width={'100%'} bg="gray.1" px={8} py={4}>
             <MenuItem title="File">
-                <MenuItem title="New" />
-                <MenuItem title="Open" />
-                <MenuItem title="Save" />
-                <MenuItem title="Save As" />
+                <Stack>
+                    <FileMenu setSvgString={setSvgString} />
+                </Stack>
             </MenuItem>
             <MenuItem title="Edit">
                 <Stack>
@@ -36,6 +36,7 @@ export const MenuBar = ({ actionStack }) => {
 MenuBar.propTypes = {
     refresh: PropTypes.func.isRequired,
     actionStack: PropTypes.object.isRequired,
+    setSvgString: PropTypes.func.isRequired,
 };
 
 const MenuItem = ({ title, children }) => {

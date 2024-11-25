@@ -4,6 +4,7 @@ import { SelectHandler } from './select';
 import { ResizeHandler } from './resize';
 import { DragHandler } from './draggable';
 import { ReimagineHandler } from './reimagine';
+import { SplitHandler } from './split';
 
 const getHandler = (handlerClass, el, enabled, ...args) => {
     if (enabled) {
@@ -37,5 +38,11 @@ extend(Element, {
             return this;
         }
         return getHandler(ReimagineHandler, this, enabled);
+    },
+    split: function () {
+        if (this.type !== 'path') {
+            return this;
+        }
+        return new SplitHandler(this).split();
     },
 });

@@ -1,5 +1,5 @@
 import { ActionIcon, Stack } from '@mantine/core';
-import { IconPointer, IconPointerCog } from '@tabler/icons-react';
+import { IconArrowsSplit, IconPointer, IconPointerCog } from '@tabler/icons-react';
 import classes from './styles.module.css';
 import PropTypes from 'prop-types';
 
@@ -11,6 +11,9 @@ export const ToolBar = ({ setMode }) => {
             </CustomActionIcon>
             <CustomActionIcon onClick={() => setMode('reimagine')}>
                 <IconPointerCog />
+            </CustomActionIcon>
+            <CustomActionIcon onClick={() => setMode('split')}>
+                <IconArrowsSplit />
             </CustomActionIcon>
         </Stack>
     );

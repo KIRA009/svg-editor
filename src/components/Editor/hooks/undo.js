@@ -79,8 +79,18 @@ export const useUndo = ({ selectedObject, actionStack, addListeners, svg, select
                     title: 'Undo',
                     message: 'Reimagined object restored',
                 });
+            } else if (lastAction.type === 'split') {
+                const { oldObject, newObject } = lastAction.details;
+                newObject.replace(oldObject);
+                notifications.show({
+                    title: 'Undo',
+                    message: 'Split object restored',
+                });
             } else {
                 throw new Error('Unknown action type', lastAction.type);
+            }
+            if (lastAction.after) {
+                lastAction.after();
             }
             refresh();
             console.log(actionStack.current.length);
