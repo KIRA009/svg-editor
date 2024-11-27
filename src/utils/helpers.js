@@ -40,7 +40,6 @@ export const convertShapesToPaths = (svg) => {
         if (POSSIBLE_SHAPE_TYPES.includes(shapeType)) {
             const path = SVGPathCommander_2.shapeToPath(shape.node, false);
             if (!path) {
-                console.log('no path', shape);
                 return;
             }
             newShape = new Path({ d: path.getAttribute('d') });
@@ -48,35 +47,8 @@ export const convertShapesToPaths = (svg) => {
             copyAttrs(shape, newShape);
         }
         if (!newShape) {
-            console.log('no new shape', shape);
             return;
         }
-        // const pathDataArray = [];
-        // let currentPathData = '';
-        // for (const pathData of newShape.node.getPathData({ normalize: true })) {
-        //     if (pathData.type === 'M') {
-        //         if (currentPathData) {
-        //             pathDataArray.push(currentPathData);
-        //         }
-        //         currentPathData = '';
-        //     }
-        //     currentPathData += `${pathData.type}${pathData.values.join(',')} `;
-        // }
-        // if (currentPathData) {
-        //     pathDataArray.push(currentPathData);
-        //     currentPathData = '';
-        // }
-        // if (pathDataArray.length === 1) {
-        //     return;
-        // }
-        // const g = new G();
-        // for (let i = 0; i < pathDataArray.length; i++) {
-        //     const pathData = pathDataArray[i];
-        //     const path = new Path({ d: pathData });
-        //     copyAttrs(newShape, path);
-        //     g.add(path);
-        // }
-        // newShape.replace(g);
     };
 
     const wrapper = (node) => {

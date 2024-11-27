@@ -1,41 +1,59 @@
 import { Group, Menu, UnstyledButton, Stack } from '@mantine/core';
 import PropTypes from 'prop-types';
 import { FileMenu } from './FileMenu';
+import { IconArrowBackUp, IconFileExport, IconZoomReset } from '@tabler/icons-react';
+import { Button } from './Button';
 
 export const MenuBar = ({ actionStack, setSvgString }) => {
     return (
-        <Group width={'100%'} bg="gray.1" px={8} py={4}>
+        <Group width={'100%'}>
             <MenuItem title="File">
-                <Stack>
+                <Stack miw={150} gap={10}>
                     <FileMenu setSvgString={setSvgString} />
+                    <Button
+                        leftSection={<IconFileExport />}
+                        onClick={() => {
+                            const event = new Event('editor:exportSvg');
+                            document.dispatchEvent(event);
+                        }}
+                    >
+                        Export
+                    </Button>
                 </Stack>
             </MenuItem>
             <MenuItem title="Edit">
-                <Stack>
-                    <UnstyledButton
-                        disabled={actionStack.current.length === 0}
+                <Stack miw={150} gap={10}>
+                    <Button
+                        disabled={actionStack.length === 0}
                         onClick={() => {
-                            // fire a ctrl + z event
                             const event = new KeyboardEvent('keydown', {
                                 key: 'z',
                                 ctrlKey: true,
                             });
                             document.dispatchEvent(event);
                         }}
+                        leftSection={<IconArrowBackUp />}
+                        c={actionStack.length === 0 ? 'gray' : 'blue'}
                     >
                         Undo
-                    </UnstyledButton>
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            const event = new Event('editor:resetZoom');
+                            document.dispatchEvent(event);
+                        }}
+                        leftSection={<IconZoomReset />}
+                    >
+                        Reset zoom
+                    </Button>
                 </Stack>
             </MenuItem>
-            <MenuItem title="View" />
-            <MenuItem title="Help" />
         </Group>
     );
 };
 
 MenuBar.propTypes = {
-    refresh: PropTypes.func.isRequired,
-    actionStack: PropTypes.object.isRequired,
+    actionStack: PropTypes.array.isRequired,
     setSvgString: PropTypes.func.isRequired,
 };
 
@@ -43,7 +61,9 @@ const MenuItem = ({ title, children }) => {
     return (
         <Menu shadow="md" width="fit-content">
             <Menu.Target>
-                <UnstyledButton>{title}</UnstyledButton>
+                <UnstyledButton ml="md" py="sm">
+                    {title}
+                </UnstyledButton>
             </Menu.Target>
             <Menu.Dropdown>{children}</Menu.Dropdown>
         </Menu>

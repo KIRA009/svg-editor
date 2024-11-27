@@ -7,7 +7,7 @@ export class ReimagineHandler {
             return;
         }
         this.el = el;
-        this.controlPointSelection = new G();
+        this.controlPointSelection = new G().addClass('svg__external');
         this._controlPoints = [];
     }
 
@@ -39,8 +39,8 @@ export class ReimagineHandler {
         this.init();
     }
 
-    getPathSegments() {
-        if (this._segments) {
+    getPathSegments(force = false) {
+        if (this._segments && !force) {
             return this._segments;
         }
         this._segments = getCubicBezierSegments(this.el);
@@ -62,13 +62,15 @@ export class ReimagineHandler {
                     .line(controlPoints[1][0], controlPoints[1][1], endPoint[0], endPoint[1])
                     .stroke({ color: 'red', width: 2 });
                 const controlPoint1 = this.controlPointSelection
-                    .circle(3)
+                    .circle(10)
                     .center(controlPoints[0][0], controlPoints[0][1])
-                    .stroke({ color: 'black', width: 2 });
+                    .stroke({ color: 'black', width: 2 })
+                    .addClass('svg_reimagine_handle');
                 const controlPoint2 = this.controlPointSelection
-                    .circle(3)
+                    .circle(10)
                     .center(controlPoints[1][0], controlPoints[1][1])
-                    .stroke({ color: 'black', width: 2 });
+                    .stroke({ color: 'black', width: 2 })
+                    .addClass('svg_reimagine_handle');
                 this.addControlPoints(i, line1, line2, controlPoint1, controlPoint2);
                 controlPoint1.draggable();
                 controlPoint2.draggable();
@@ -77,14 +79,14 @@ export class ReimagineHandler {
                     ev.stopPropagation();
                     controlPoint2.draggable(false);
                     this.observer.disconnect();
-                    this.el.fire('beforereimagine', { segments: this.getPathSegments() });
+                    this.el.fire('beforereimagine', { getSegments: () => JSON.parse(JSON.stringify(this.getPathSegments(true))) });
                 });
                 controlPoint2.on('dragstart', (ev) => {
                     ev.preventDefault();
                     ev.stopPropagation();
                     controlPoint1.draggable(false);
                     this.observer.disconnect();
-                    this.el.fire('beforereimagine', { segments: this.getPathSegments() });
+                    this.el.fire('beforereimagine', { getSegments: () => JSON.parse(JSON.stringify(this.getPathSegments(true))) });
                 });
                 controlPoint1.on('dragmove', (ev) => this.onDragMove(ev, i, j, 0));
                 controlPoint2.on('dragmove', (ev) => this.onDragMove(ev, i, j, 1));

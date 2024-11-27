@@ -2,7 +2,7 @@ import { notifications } from '@mantine/notifications';
 import { useEffect } from 'react';
 import { updatePathFromSegments } from '../../../utils/helpers';
 
-export const useUndo = ({ selectedObject, actionStack, addListeners, svg, selectObject, refresh }) => {
+export const useUndo = ({ selectedObject, actionStack, setActionStack, addListeners, svg, selectObject }) => {
     useEffect(() => {
         // on press ctrl + z, undo the last action
         function undo(e) {
@@ -10,12 +10,12 @@ export const useUndo = ({ selectedObject, actionStack, addListeners, svg, select
             if (!(e.ctrlKey && e.key === 'z')) {
                 return;
             }
-            if (actionStack.current.length === 0) {
+            if (actionStack.length === 0) {
                 return;
             }
-            const lastAction = actionStack.current.pop();
+            const lastAction = actionStack[actionStack.length - 1];
             if (lastAction.type === 'copy') {
-                if (selectedObject.current === lastAction.details.obj) {
+                if (selectedObject === lastAction.details.obj) {
                     selectObject(null);
                 }
                 lastAction.details.obj.remove();
@@ -57,7 +57,11 @@ export const useUndo = ({ selectedObject, actionStack, addListeners, svg, select
                 });
             } else if (lastAction.type === 'text') {
                 const { obj, text } = lastAction.details;
-                obj.text(text);
+                obj.textContent = text;
+                notifications.show({
+                    title: 'Undo',
+                    message: 'Text restored',
+                });
             } else if (lastAction.type === 'fill') {
                 const { obj, fill } = lastAction.details;
                 obj.fill(fill);
@@ -92,13 +96,12 @@ export const useUndo = ({ selectedObject, actionStack, addListeners, svg, select
             if (lastAction.after) {
                 lastAction.after();
             }
-            refresh();
-            console.log(actionStack.current.length);
+            setActionStack((prev) => prev.slice(0, -1));
         }
         document.addEventListener('keydown', undo);
         return () => {
             document.removeEventListener('keydown', undo);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [svg.current]);
+    }, [svg.current, actionStack]);
 };

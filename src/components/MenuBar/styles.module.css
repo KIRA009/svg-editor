@@ -1,0 +1,7 @@
+.button {
+    padding: 5px 15px;
+}
+
+.button:hover {
+    background-color: var(--mantine-color-gray-2);
+}

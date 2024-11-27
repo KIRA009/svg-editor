@@ -15,24 +15,28 @@ const getMouseDownFunc = (eventName, el, points, index = null) => {
 export class SelectHandler {
     constructor(el) {
         this.el = el;
-        this.selection = new G();
+        this.selection = new G().addClass('svg__external');
         this.order = ['lt', 't', 'rt', 'r', 'rb', 'b', 'lb', 'l', 'rot'];
     }
 
-    init() {
+    init(options = {}) {
+        this.options = options;
         // mount group
         this.el.root().put(this.selection);
         this.initialised = false;
         this.bindResizeEvents();
         this.updatePoints();
         this.createSelection();
+        if (options.noHandles) {
+            return;
+        }
         this.createResizeHandles();
         this.updateResizeHandles();
         this.createRotationHandle();
         this.updateRotationHandle();
     }
 
-    active(val) {
+    active(val, options = {}) {
         // Disable selection
         if (!val) {
             this.selection.clear().remove();
@@ -41,7 +45,7 @@ export class SelectHandler {
         }
 
         // Enable selection
-        this.init();
+        this.init(options);
     }
 
     createSelection() {
@@ -185,6 +189,9 @@ export class SelectHandler {
     }
 
     refresh() {
+        if (this.options.noHandles) {
+            return;
+        }
         this.updatePoints();
         this.updateSelection();
         this.updateResizeHandles();

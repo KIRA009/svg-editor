@@ -12,6 +12,8 @@
 
 .editor {
     border: 5px solid var(--mantine-color-gray-4);
+    margin: 0 auto;
+    display: block;
 }
 
 .selectedObject__panel {

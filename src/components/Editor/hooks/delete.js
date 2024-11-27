@@ -10,15 +10,15 @@ export const useDelete = ({ selectedObject, addToActionStack, selectObject, mode
             if (e.key !== 'Delete') {
                 return;
             }
-            if (!selectedObject.current) {
+            if (!selectedObject) {
                 return;
             }
-            const _selectedObject = selectedObject.current;
+            const _selectedObject = selectedObject;
             const parentIndex = _selectedObject.parent().index(_selectedObject);
             addToActionStack({
                 type: 'delete',
                 details: {
-                    obj: _selectedObject.clone(),
+                    obj: _selectedObject,
                     parentIndex,
                     parent: _selectedObject.parent(),
                 },
@@ -31,5 +31,5 @@ export const useDelete = ({ selectedObject, addToActionStack, selectObject, mode
             document.removeEventListener('keydown', deleteElement);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [mode, selectedObject]);
 };

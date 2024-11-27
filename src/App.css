@@ -15,8 +15,8 @@ body {
 .svg_select_handle,
 .svg_reimagine_handle {
     stroke-width: 3;
-    stroke: #000;
-    fill: #000;
+    stroke: red;
+    fill: #fff;
 }
 .svg_select_handle_rot {
     fill: #fff;

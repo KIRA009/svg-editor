@@ -5,6 +5,7 @@ import { ResizeHandler } from './resize';
 import { DragHandler } from './draggable';
 import { ReimagineHandler } from './reimagine';
 import { SplitHandler } from './split';
+import { GridHandler } from './grid';
 
 const getHandler = (handlerClass, el, enabled, ...args) => {
     if (enabled) {
@@ -24,8 +25,8 @@ const getHandler = (handlerClass, el, enabled, ...args) => {
 };
 
 extend(Element, {
-    select: function (enabled = true) {
-        return getHandler(SelectHandler, this, enabled);
+    select: function (enabled = true, options = {}) {
+        return getHandler(SelectHandler, this, enabled, options);
     },
     resize: function (enabled = true) {
         return getHandler(ResizeHandler, this, enabled, {});
@@ -44,5 +45,11 @@ extend(Element, {
             return this;
         }
         return new SplitHandler(this).split();
+    },
+    grid: function (enabled = true) {
+        if (this.type !== 'svg') {
+            return this;
+        }
+        return getHandler(GridHandler, this, enabled);
     },
 });

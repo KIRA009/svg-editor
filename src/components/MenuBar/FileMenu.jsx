@@ -1,6 +1,7 @@
-import { Button, FileButton } from '@mantine/core';
-import { IconFile } from '@tabler/icons-react';
+import { FileButton } from '@mantine/core';
+import { IconFileUpload } from '@tabler/icons-react';
 import PropTypes from 'prop-types';
+import { Button } from './Button';
 
 export const FileMenu = ({ setSvgString }) => {
     const onChange = (file) => {
@@ -16,7 +17,7 @@ export const FileMenu = ({ setSvgString }) => {
     return (
         <FileButton onChange={onChange} accept="image/svg+xml">
             {(props) => (
-                <Button variant="subtle" leftSection={<IconFile />} {...props}>
+                <Button leftSection={<IconFileUpload />} {...props}>
                     Open
                 </Button>
             )}

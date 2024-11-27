@@ -10,7 +10,7 @@ const theme = createTheme();
 
 createRoot(document.getElementById('root')).render(
     <MantineProvider theme={theme}>
-        <Notifications />
+        <Notifications limit={1} position="bottom-center" autoClose={500} />
         <App />
     </MantineProvider>
 );
