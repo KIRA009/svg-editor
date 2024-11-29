@@ -14,7 +14,7 @@ import { useCopy } from './hooks/copy';
 import { useDelete } from './hooks/delete';
 import { notifications } from '@mantine/notifications';
 
-export const Editor = ({ svgString, mode, actionStack, setActionStack, setSelectedObjectForEditPanel, addToActionStack }) => {
+export const Editor = ({ svgString, mode, actionStack, setActionStack, setSelectedObjectForEditPanel, addToActionStack, onExport }) => {
     const ref = useRef(null);
     const svg = useRef(null);
     const isGridActive = useRef(false);
@@ -103,6 +103,11 @@ export const Editor = ({ svgString, mode, actionStack, setActionStack, setSelect
             };
             removeExternalElements(clonedSvg);
             const svgString = clonedSvg.svg();
+            console.log(onExport);
+            if (onExport) {
+                onExport(svgString);
+                return;
+            }
             // download the svg string as a file
             const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
             const url = URL.createObjectURL(blob);
@@ -213,7 +218,13 @@ export const Editor = ({ svgString, mode, actionStack, setActionStack, setSelect
                         after: () => {
                             removeListeners(oldObject);
                             addListeners(oldObject);
-                            setSelectedObjectForTransform(oldObject);
+                            setSelectedObjectForTransform((prev) => {
+                                if (splitObject.has(prev) || splitObject === prev) {
+                                    removeTransformHandlers(prev);
+                                    removeReimagineHandlers(prev);
+                                }
+                                return oldObject;
+                            });
                         },
                     });
                     addListeners(splitObject);
@@ -296,4 +307,5 @@ Editor.propTypes = {
     setActionStack: PropTypes.func.isRequired,
     setSelectedObjectForEditPanel: PropTypes.func,
     addToActionStack: PropTypes.func,
+    onExport: PropTypes.func,
 };

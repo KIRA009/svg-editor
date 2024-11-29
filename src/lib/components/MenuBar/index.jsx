@@ -6,7 +6,7 @@ import { Button } from './Button';
 
 export const MenuBar = ({ actionStack, setSvgString }) => {
     return (
-        <Group width={'100%'}>
+        <Group>
             <MenuItem title="File">
                 <Stack miw={150} gap={10}>
                     <FileMenu setSvgString={setSvgString} />

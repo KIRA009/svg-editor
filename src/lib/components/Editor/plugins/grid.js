@@ -13,11 +13,12 @@ export class GridHandler {
     }
 
     createLines() {
+        const gap = this.el.root().width() / 20;
         // clear horizontal and vertical lines
         this.selection.clear();
         const length = 5000;
         // add horizontal lines of length 10000
-        for (let i = -length / 2; i < length / 2; i += 100) {
+        for (let i = -length / 2; i < length / 2; i += gap) {
             this.selection.add(
                 this.el
                     .root()
@@ -26,7 +27,7 @@ export class GridHandler {
             );
         }
         // add vertical lines of length 10000
-        for (let i = -length / 2; i < length / 2; i += 100) {
+        for (let i = -length / 2; i < length / 2; i += gap) {
             this.selection.add(
                 this.el
                     .root()
