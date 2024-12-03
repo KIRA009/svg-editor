@@ -142,6 +142,9 @@ export const Editor = ({ svgString, mode, actionStack, setActionStack, setSelect
             });
             setActionStack([]);
             selectObject(null);
+            if (isGridActive.current) {
+                svg.current.grid(true);
+            }
         }
         document.addEventListener('editor:resetZoom', resetZoom);
         document.addEventListener('editor:exportSvg', exportSvg);

@@ -13,7 +13,8 @@ export class GridHandler {
     }
 
     createLines() {
-        const gap = this.el.root().width() / 20;
+        const gap = this.el.node.width.baseVal.value / 20;
+
         // clear horizontal and vertical lines
         this.selection.clear();
         const length = 5000;

@@ -32,7 +32,7 @@ function App({ svgString: _svgString = null, onExport = null }) {
                     <MenuBar actionStack={actionStack} setSvgString={setSvgString} />
                 </Box>
                 <Group pos="relative" align="start">
-                    <Box pos="sticky" top={50} left={0} bg="white" style={{ zIndex: 1000 }}>
+                    <Box pos="sticky" top={50} left={0} bg="white" style={{ zIndex: 300 }}>
                         <ToolBar mode={mode} setMode={setMode} />
                     </Box>
                     <Box
