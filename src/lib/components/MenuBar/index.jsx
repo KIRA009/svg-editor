@@ -8,7 +8,7 @@ export const MenuBar = ({ actionStack, setSvgString }) => {
     return (
         <Group>
             <MenuItem title="File">
-                <Stack miw={150} gap={10}>
+                <Stack miw={150} style={{ gap: 10 }}>
                     <FileMenu setSvgString={setSvgString} />
                     <Button
                         leftSection={<IconFileExport />}
@@ -22,7 +22,7 @@ export const MenuBar = ({ actionStack, setSvgString }) => {
                 </Stack>
             </MenuItem>
             <MenuItem title="Edit">
-                <Stack miw={150} gap={10}>
+                <Stack miw={150} style={{ gap: 10 }}>
                     <Button
                         disabled={actionStack.length === 0}
                         onClick={() => {

@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 
 export const ToolBar = ({ mode, setMode }) => {
     return (
-        <Stack justify="start" h="100%" gap={0}>
+        <Stack h="100%" style={{ justifyContent: 'start', gap: 0 }}>
             <CustomActionIcon onClick={() => setMode('transform')} active={mode === 'transform'}>
                 <Tooltip.Floating label="Transform">
                     <IconPointer />

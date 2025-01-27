@@ -1,8 +1,6 @@
 import './App.css';
-import '@mantine/core/styles.css';
-import '@mantine/notifications/styles.css';
 
-import { Box, createTheme, Group, MantineProvider, Paper, Stack } from '@mantine/core';
+import { Box, Group, MantineProvider, Paper, Stack } from '@mantine/core';
 import { Editor } from './components/Editor';
 import { MenuBar } from './components/MenuBar';
 import { ToolBar } from './components/ToolBar';
@@ -10,8 +8,6 @@ import { useState } from 'react';
 import { Panel } from './components/Editor/Panel';
 import { Notifications } from '@mantine/notifications';
 import PropTypes from 'prop-types';
-
-const theme = createTheme();
 
 function App({ svgString: _svgString = null, onExport = null }) {
     const [mode, setMode] = useState('transform');
@@ -25,9 +21,9 @@ function App({ svgString: _svgString = null, onExport = null }) {
         setSelectedObjectForEditPanel(null);
     };
     return (
-        <MantineProvider theme={theme}>
+        <MantineProvider withGlobalStyles withNormalizeCSS withCSSVariables>
             <Notifications limit={1} position="bottom-center" autoClose={500} />
-            <Stack gap={0}>
+            <Stack style={{ gap: 0 }}>
                 <Box miw={'100%'} bg="gray.1" pos="sticky" top={0} style={{ zIndex: 1000 }}>
                     <MenuBar actionStack={actionStack} setSvgString={setSvgString} />
                 </Box>
@@ -38,10 +34,10 @@ function App({ svgString: _svgString = null, onExport = null }) {
                     <Box
                         my={50}
                         pos="relative"
-                        flex="auto"
                         maw="100%"
                         style={{
                             overflowX: 'auto',
+                            flex: 'auto',
                         }}
                     >
                         <Editor

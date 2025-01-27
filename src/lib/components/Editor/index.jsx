@@ -282,8 +282,8 @@ export const Editor = ({ svgString, mode, actionStack, setActionStack, setSelect
         ? new Array(...selectedObjectForTransform.parents()).reverse().concat(selectedObjectForTransform)
         : [];
     return (
-        <Box pos="relative" flex="auto">
-            <Group pos="absolute" top={0} left={50} gap={0}>
+        <Box pos="relative" style={{ flex: 'auto' }}>
+            <Group pos="absolute" top={0} left={50} style={{ gap: 0 }}>
                 {selectedObjectParents.map((obj) => (
                     <Box
                         key={obj.id()}

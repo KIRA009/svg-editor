@@ -1,8 +1,8 @@
 import { Accordion, ActionIcon, Box, ColorInput, Divider, Group, NumberInput, Slider, Stack, Text, Textarea } from '@mantine/core';
-import { useDebouncedCallback } from '@mantine/hooks';
 import { IconX } from '@tabler/icons-react';
 import PropTypes from 'prop-types';
 import { useEffect, useRef, useState } from 'react';
+import { useDebouncedCallback } from '../../utils/hooks';
 
 export const Panel = ({ selectedObject, addToActionStack, closePanel }) => {
     if (!selectedObject) {
@@ -12,7 +12,7 @@ export const Panel = ({ selectedObject, addToActionStack, closePanel }) => {
     if (['text', 'tspan'].includes(selectedObject.type)) {
         fields = (
             <Accordion multiple>
-                <Stack gap={20}>
+                <Stack style={{ gap: 20 }}>
                     <TextFields node={selectedObject.node} addToActionStack={addToActionStack} />
                 </Stack>
             </Accordion>
@@ -22,13 +22,13 @@ export const Panel = ({ selectedObject, addToActionStack, closePanel }) => {
     }
     return (
         <Box pos="relative" miw={400} mih={200} p="md">
-            <Group justify="space-between" align="center" mb="md">
+            <Group align="center" mb="md" style={{ justifyContent: 'space-between' }}>
                 <Text>Editing {selectedObject.type} node</Text>
                 <ActionIcon variant="subtle" onClick={closePanel} top={0} right={0}>
                     <IconX />
                 </ActionIcon>
             </Group>
-            <Stack gap={20}>{fields}</Stack>
+            <Stack style={{ gap: 20 }}>{fields}</Stack>
         </Box>
     );
 };
@@ -55,7 +55,7 @@ const TextFields = ({ node, addToActionStack, level = 0 }) => {
                     },
                 }}
             >
-                <Stack gap={20}>
+                <Stack style={{ gap: 20 }}>
                     <ElementFields selectedObject={node.instance} addToActionStack={addToActionStack} />
                     {children.map((child, index) => (
                         <TextFields node={child} addToActionStack={addToActionStack} key={index} level={level + 1} />
@@ -79,6 +79,7 @@ const NakedTextFields = ({ node, addToActionStack }) => {
         dispatchChange();
     };
     const dispatchChange = useDebouncedCallback(() => {
+        console.log('dispatchChange');
         addToActionStack({
             type: 'text',
             details: { obj: node, text: currentText.current },

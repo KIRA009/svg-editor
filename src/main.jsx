@@ -1,4 +1,5 @@
-import { createRoot } from 'react-dom/client';
+// eslint-disable-next-line react/no-deprecated
+import { render } from 'react-dom';
 import App from './lib/App.jsx';
 
-createRoot(document.getElementById('root')).render(<App />);
+render(<App />, document.getElementById('root'));
